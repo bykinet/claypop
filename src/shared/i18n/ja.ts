@@ -44,6 +44,7 @@ export const ja = {
   switchSignup: 'アカウントを新規作成',
   switchLogin: 'すでにアカウントをお持ちの方はこちら',
   switchPhone: '電話番号ログインに切り替え',
+  emailAlreadyInUse: 'このメールアドレスは既に登録されています。ログインしてください。',
 
   // ニックネーム
   nicknameTitle: 'ニックネーム設定',
@@ -108,4 +109,30 @@ export const ja = {
   devEchoJump: 'エコーへ移動',
   devSuccess: 'クリア演出',
   devFailure: '失敗演出',
+
+  // 遊び方＆ガイド
+  howToPlay: '遊び方',
+  howToPlayTitle: 'ゲームの遊び方＆操作ガイド',
+  controlsTitle: '🎯 操作方法 (Controls)',
+  desktopControls: '💻 PC/デスクトップ: マウスで照準 / クリックまたはSpacebarで発射',
+  mobileControls: '📱 スマホ/タブレット: 画面ドラッグで照準 / 発射ボタンをタップ',
+  rulesTitle: '🛸 ターゲット＆ルール (Rules)',
+  ruleLeadShot: '• リードショット(予測射撃): 飛んでいく的の少し先を狙って撃ち落としましょう。',
+  ruleCombo: '• コンボ得点: 連続で命中させるとコンボボーナスと獲得マイルが大幅アップ！',
+  ruleEcho: '• エコーターゲット: 10コンボ達成で超巨大なボーナスターゲットが出現！',
+  ruleChick: '• ヒヨコ注意 (🐥): ヒヨコを撃ってしまうと減点＆ミスになるので絶対に撃たないでください！',
+  ruleWinCondition: '• クリア条件: 制限時間内にミス上限を超えずに完走してください。',
+  close: '閉じる',
+  gotIt: '了解',
+
+  // ログイン画面追加文言
+  loginTitle: 'クレイポップ ログイン',
+  loginSubtitle: '記録を保存してTOP 20ランキングに挑戦しよう',
+  loginToSave: 'ログイン',
+  guestNotice: '現在ゲストプレイ中です。ランキング保存のためにアカウントを連携してみましょう。',
+  accountLinkTitle: 'アカウント連携＆ログイン',
+  backToMain: '最初に戻る',
+  loginSuccess: 'ログインしました。',
+  signupSuccess: '会員登録が完了しました。',
+  phoneAuthDesc: '電話番号とパスワードでいつでも簡単にログインできます。',
 };

@@ -90,9 +90,12 @@ export const App: React.FC = () => {
         <IntroPage onComplete={handleIntroComplete} />
       )}
 
-      {/* 2. 첫 화면 (필요 시 선택적 지원) */}
+      {/* 2. 첫 화면 / 로그인 모달 */}
       {screen === 'first' && (
-        <FirstPage onSuccess={handleAuthSuccess} />
+        <FirstPage
+          onSuccess={handleAuthSuccess}
+          onCancel={() => setScreen('home')}
+        />
       )}
 
       {/* 3. 닉네임 설정 화면 */}
@@ -108,6 +111,7 @@ export const App: React.FC = () => {
           onStartGame={() => setScreen('play')}
           onGoMyPage={() => setScreen('mypage')}
           onLogout={handleLogout}
+          onOpenLogin={() => setScreen('first')}
         />
       )}
 

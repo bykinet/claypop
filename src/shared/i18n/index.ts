@@ -24,19 +24,31 @@ i18n.use(initReactI18next).init({
 });
 
 /**
- * 언어 토글: EN → KO → JA → EN
+ * 언어 토글 순서: 한국어(ko) -> 영어(en) -> 일본어(ja) -> 한국어(ko)
  */
 export function toggleLocale(): SupportedLocale {
-  const current = (i18n.language as SupportedLocale) || 'en';
-  let next: SupportedLocale = 'en';
+  const current = (i18n.language || 'ko').toLowerCase();
+  let next: SupportedLocale = 'ko';
 
-  if (current === 'en') next = 'ko';
-  else if (current === 'ko') next = 'ja';
-  else next = 'en';
+  if (current.startsWith('ko')) {
+    next = 'en';
+  } else if (current.startsWith('en')) {
+    next = 'ja';
+  } else {
+    next = 'ko';
+  }
 
   i18n.changeLanguage(next);
   localStorage.setItem('locale', next);
   return next;
+}
+
+export function getCurrentLocaleLabel(lang?: string): string {
+  const current = (lang || i18n.language || 'ko').toLowerCase();
+  if (current.startsWith('ko')) return 'KO (한국어)';
+  if (current.startsWith('en')) return 'EN (English)';
+  if (current.startsWith('ja')) return 'JA (日本語)';
+  return 'KO (한국어)';
 }
 
 export default i18n;

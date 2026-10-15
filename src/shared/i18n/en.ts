@@ -44,6 +44,7 @@ export const en = {
   switchSignup: 'Create an account',
   switchLogin: 'Already have an account? Log in',
   switchPhone: 'Log in with phone number',
+  emailAlreadyInUse: 'This email is already registered. Please log in.',
 
   // Nickname
   nicknameTitle: 'Set Nickname',
@@ -108,4 +109,30 @@ export const en = {
   devEchoJump: 'Jump to Echo',
   devSuccess: 'Success Ending',
   devFailure: 'Failure Ending',
+
+  // How to Play & Guide
+  howToPlay: 'How to Play',
+  howToPlayTitle: 'How to Play & Controls',
+  controlsTitle: '🎯 Controls',
+  desktopControls: '💻 PC/Desktop: Aim with mouse / Click or Spacebar to fire',
+  mobileControls: '📱 Mobile/Tablet: Drag screen to aim / Tap Fire button',
+  rulesTitle: '🛸 Targets & Game Rules',
+  ruleLeadShot: '• Lead Shot: Aim slightly ahead of flying targets to intercept them.',
+  ruleCombo: '• Combo Scoring: Chaining consecutive hits significantly increases combo score and mileage.',
+  ruleEcho: '• Echo Target: Reaching 10 combo spawns a huge bonus target for massive points!',
+  ruleChick: '• Beware Chick (🐥): Shooting the cute chick causes score penalty and a miss!',
+  ruleWinCondition: '• Clear Goal: Complete the session without exceeding the miss limit.',
+  close: 'Close',
+  gotIt: 'Got it',
+
+  // Login Screen Extra Strings
+  loginTitle: 'Sign In to ClayPop',
+  loginSubtitle: 'Save your high scores and climb the Top 20 leaderboard',
+  loginToSave: 'Log In',
+  guestNotice: 'Playing as guest. Sign in to permanently save your rankings in the cloud.',
+  accountLinkTitle: 'Account & Sign In',
+  backToMain: 'Back to Menu',
+  loginSuccess: 'Logged in successfully.',
+  signupSuccess: 'Account created successfully.',
+  phoneAuthDesc: 'Quickly sign in anytime using your phone number and password.',
 };

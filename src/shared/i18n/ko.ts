@@ -44,6 +44,7 @@ export const ko = {
   switchSignup: '새 계정 만들기',
   switchLogin: '이미 계정이 있나요? 로그인',
   switchPhone: '전화번호 로그인으로 전환',
+  emailAlreadyInUse: '이미 가입된 이메일입니다. 로그인해 주세요.',
 
   // 닉네임
   nicknameTitle: '별명 설정',
@@ -108,4 +109,30 @@ export const ko = {
   devEchoJump: '메아리로 이동',
   devSuccess: '성공 엔딩',
   devFailure: '실패 엔딩',
+
+  // 사용방법 & 가이드
+  howToPlay: '사용방법',
+  howToPlayTitle: '게임 사용방법 & 조작 가이드',
+  controlsTitle: '🎯 조작 방법 (Controls)',
+  desktopControls: '💻 PC/데스크톱: 마우스로 총구 조준 / 클릭 또는 Spacebar로 발사',
+  mobileControls: '📱 모바일/태블릿: 화면 터치 드래그로 조준 / 발사 버튼 탭',
+  rulesTitle: '🛸 타깃 및 규칙 (Rules)',
+  ruleLeadShot: '• 리드샷 (예측 사격): 날아가는 원반보다 살짝 앞쪽을 겨누어 발사하세요.',
+  ruleCombo: '• 콤보 득점: 연속 명중 시 콤보 점수와 마일리지가 대폭 증가합니다.',
+  ruleEcho: '• 메아리 타깃: 10콤보 달성 시 거대한 보너스 타깃이 출현합니다!',
+  ruleChick: '• 병아리 주의 (🐥): 귀여운 병아리를 쏘면 감점과 미스가 발생하니 피하세요!',
+  ruleWinCondition: '• 클리어 조건: 제한 시간 동안 미스 한도를 넘기지 않고 완주하세요.',
+  close: '닫기',
+  gotIt: '확인',
+
+  // 로그인 화면 추가 문구
+  loginTitle: '클레이 팝 로그인',
+  loginSubtitle: '기록을 보관하고 TOP 20 랭킹에 도전하세요',
+  loginToSave: '로그인',
+  guestNotice: '게스트 플레이 중입니다. 랭킹 영구 보관을 위해 로그인해 보세요.',
+  accountLinkTitle: '계정 연동 & 로그인',
+  backToMain: '처음으로',
+  loginSuccess: '로그인되었습니다.',
+  signupSuccess: '회원가입이 완료되었습니다.',
+  phoneAuthDesc: '휴대폰 번호와 비밀번호로 간편하게 로그인할 수 있습니다.',
 };

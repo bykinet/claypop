@@ -795,10 +795,12 @@ export const PlayPage: React.FC<PlayPageProps> = ({
                       padding: '2px 6px',
                       borderRadius: '4px',
                       fontSize: '11px',
+                      fontWeight: '700',
                       cursor: 'pointer',
                     }}
+                    title="언어 전환 (KO -> EN -> JA)"
                   >
-                    {i18n.language.toUpperCase()}
+                    🌐 {i18n.language.slice(0, 2).toUpperCase()}
                   </button>
 
                   <button
@@ -889,9 +891,12 @@ export const PlayPage: React.FC<PlayPageProps> = ({
                         padding: '2px 6px',
                         borderRadius: '4px',
                         fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
                       }}
+                      title="언어 전환 (KO -> EN -> JA)"
                     >
-                      {i18n.language.toUpperCase()}
+                      🌐 {i18n.language.slice(0, 2).toUpperCase()}
                     </button>
                     <button
                       onClick={onGoMyPage}

@@ -1,11 +1,12 @@
 // src/pages/HomePage.tsx
 // 홈 화면: 세션 시간(30~180s) 및 난이도 선택, 게임 시작
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GameConfig } from '../app/types';
 import { userService } from '../entities/user/userService';
 import { soundManager } from '../game/audio/soundManager';
-import { toggleLocale } from '../shared/i18n';
+import { toggleLocale, getCurrentLocaleLabel } from '../shared/i18n';
+import { HowToPlayModal } from './HowToPlayModal';
 
 import { TargetType } from '../game/sim/types';
 import { ALL_TARGET_TYPES, getTargetDefinition, getProjectileImageUrl } from '../game/targets/catalog';
@@ -16,6 +17,7 @@ interface HomePageProps {
   onStartGame: () => void;
   onGoMyPage: () => void;
   onLogout: () => void;
+  onOpenLogin: () => void;
 }
 
 const DURATIONS = [30, 60, 90, 120, 150, 180];
@@ -27,10 +29,13 @@ export const HomePage: React.FC<HomePageProps> = ({
   onStartGame,
   onGoMyPage,
   onLogout,
+  onOpenLogin,
 }) => {
   const { t, i18n } = useTranslation();
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
   const user = userService.getCurrentUser();
   const currentMileage = userService.getMileage();
+  const isGuest = !user || user.provider === 'guest';
 
   const handleStart = () => {
     soundManager.initContext();
@@ -50,11 +55,43 @@ export const HomePage: React.FC<HomePageProps> = ({
     <div className="modal-overlay">
       <div className="modal-card" style={{ maxWidth: '560px', maxHeight: '92vh', overflowY: 'auto' }}>
         {/* 상단 사용자 상태 바 & 마일리지 배지 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '15px', fontWeight: '700', color: '#f8fafc' }}>
+            <span style={{ fontSize: '15px', fontWeight: '800', color: '#f8fafc' }}>
               {user?.nickname || 'Guest'}
             </span>
+            {isGuest ? (
+              <button
+                onClick={onOpenLogin}
+                style={{
+                  background: 'rgba(245, 158, 11, 0.18)',
+                  border: '1px solid #f59e0b',
+                  color: '#f59e0b',
+                  padding: '3px 8px',
+                  borderRadius: '10px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                }}
+                title={t('guestNotice')}
+              >
+                🔑 {t('loginToSave')}
+              </button>
+            ) : (
+              <span
+                style={{
+                  background: 'rgba(56, 189, 248, 0.2)',
+                  border: '1px solid #38bdf8',
+                  color: '#38bdf8',
+                  padding: '2px 6px',
+                  borderRadius: '8px',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                }}
+              >
+                {user.provider.toUpperCase()}
+              </span>
+            )}
             <div
               style={{
                 background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.25) 100%)',
@@ -73,7 +110,29 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {/* 사용방법 버튼 */}
+            <button
+              onClick={() => setShowHowToPlay(true)}
+              style={{
+                background: 'rgba(245, 158, 11, 0.15)',
+                border: '1px solid rgba(245, 158, 11, 0.5)',
+                color: '#f59e0b',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                cursor: 'pointer',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+              title="게임 사용방법 및 조작 가이드"
+            >
+              📖 {t('howToPlay')}
+            </button>
+
+            {/* 언어 토글 버튼 (KO -> EN -> JA -> KO 순서) */}
             <button
               onClick={() => toggleLocale()}
               style={{
@@ -84,17 +143,20 @@ export const HomePage: React.FC<HomePageProps> = ({
                 borderRadius: '6px',
                 fontSize: '12px',
                 cursor: 'pointer',
+                fontWeight: '700',
               }}
+              title="언어 전환 (KO -> EN -> JA)"
             >
-              {i18n.language.toUpperCase()}
+              🌐 {getCurrentLocaleLabel(i18n.language)}
             </button>
+
             <button
               onClick={onGoMyPage}
               style={{
                 background: 'rgba(56, 189, 248, 0.15)',
                 border: '1px solid rgba(56, 189, 248, 0.4)',
                 color: '#38bdf8',
-                padding: '4px 10px',
+                padding: '4px 8px',
                 borderRadius: '6px',
                 fontSize: '12px',
                 cursor: 'pointer',
@@ -103,6 +165,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             >
               {t('shopTitle')}
             </button>
+
             <button
               onClick={onLogout}
               style={{
@@ -392,6 +455,11 @@ export const HomePage: React.FC<HomePageProps> = ({
           {t('startGame')}
         </button>
       </div>
+
+      {/* 사용방법 안내 모달 */}
+      {showHowToPlay && (
+        <HowToPlayModal onClose={() => setShowHowToPlay(false)} />
+      )}
     </div>
   );
 };

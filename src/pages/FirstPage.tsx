@@ -1,16 +1,23 @@
 // src/pages/FirstPage.tsx
-// 첫 화면: 게스트, Google, 이메일, 전화번호 로그인 및 언어 토글
+// 클레이 팝 로그인/회원가입 화면 (게스트, Google, 이메일, 전화번호 지원 및 KO->EN->JA 실시간 다국어 지원)
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { toggleLocale } from '../shared/i18n';
+import { toggleLocale, getCurrentLocaleLabel } from '../shared/i18n';
 import { userService } from '../entities/user/userService';
 import { UserProfile } from '../shared/firebase/firebase';
 
 interface FirstPageProps {
   onSuccess: (user: UserProfile) => void;
+  onCancel?: () => void;
 }
 
-export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
+const COUNTRY_OPTIONS = [
+  { code: '+82', flag: '🇰🇷', name: 'KR' },
+  { code: '+1', flag: '🇺🇸', name: 'US' },
+  { code: '+81', flag: '🇯🇵', name: 'JP' },
+];
+
+export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess, onCancel }) => {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<'main' | 'email' | 'phone'>('main');
   const [isSignUp, setIsSignUp] = useState(false);
@@ -22,61 +29,64 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   // 전화번호 폼 상태
+  const [selectedCountry, setSelectedCountry] = useState('+82');
   const [phone, setPhone] = useState('');
   const [phonePassword, setPhonePassword] = useState('');
 
-  // 오류 메시지
+  // 로딩 & 에러 상태
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 언어 토글 핸들러
+  // 언어 토글 핸들러 (한국어 -> 영어 -> 일본어 순서)
   const handleToggleLang = () => {
     toggleLocale();
   };
 
-  // 국가 코드 및 플레이스홀더 계산
-  const getPhoneConfig = () => {
-    const lang = i18n.language;
-    if (lang === 'ja') {
-      return { country: '+81', placeholder: '090-1234-5678' };
+  // 오류 메시지 파싱
+  const handleAuthError = (err: any) => {
+    const code = err?.code || '';
+    if (code.includes('email-already-in-use')) {
+      setErrorMessage(t('emailAlreadyInUse'));
+    } else if (code.includes('wrong-password') || code.includes('invalid-credential') || code.includes('user-not-found')) {
+      setErrorMessage(t('loginFailedEmail'));
+    } else if (code.includes('weak-password')) {
+      setErrorMessage(t('passwordHint'));
+    } else if (code.includes('popup-closed-by-user')) {
+      setErrorMessage('');
+    } else {
+      setErrorMessage(err?.message || t('loginFailedEmail'));
     }
-    if (lang === 'en') {
-      return { country: '+1', placeholder: '10-1234-5678' };
-    }
-    return { country: '+82', placeholder: '10-1234-5678' };
   };
 
-  const phoneConfig = getPhoneConfig();
-
-  // 게스트 로그인
+  // 1. 게스트 로그인
   const handleGuest = async () => {
     setLoading(true);
     setErrorMessage('');
     try {
       const user = await userService.loginAsGuest();
       onSuccess(user);
-    } catch {
-      setErrorMessage(t('loginFailedEmail'));
+    } catch (err) {
+      handleAuthError(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Google 로그인
+  // 2. Google 로그인
   const handleGoogle = async () => {
     setLoading(true);
     setErrorMessage('');
     try {
       const user = await userService.loginWithGoogle();
       onSuccess(user);
-    } catch {
-      setErrorMessage(t('loginFailedEmail'));
+    } catch (err) {
+      handleAuthError(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // 이메일 로그인 / 가입 제출
+  // 3. 이메일 로그인 / 회원가입 제출
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -86,7 +96,6 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
       return;
     }
 
-    // 비밀번호 형식: 6~20자의 영문과 숫자
     const passRegex = /^[a-zA-Z0-9]{6,20}$/;
     if (!passRegex.test(password)) {
       setErrorMessage(t('passwordInvalid'));
@@ -102,19 +111,20 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
     try {
       const user = await userService.loginWithEmail(email.trim(), password, isSignUp);
       onSuccess(user);
-    } catch {
-      setErrorMessage(t('loginFailedEmail'));
+    } catch (err) {
+      handleAuthError(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // 전화번호 로그인 제출
+  // 4. 전화번호 로그인 / 등록 제출
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!phone.trim()) {
+    const cleanNumber = phone.trim().replace(/[^0-9]/g, '');
+    if (cleanNumber.length < 8) {
       setErrorMessage(t('loginFailedPhone'));
       return;
     }
@@ -126,11 +136,11 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
     }
 
     setLoading(true);
-    const fullPhone = `${phoneConfig.country}${phone.trim().replace(/^0+/, '')}`;
+    const fullPhone = `${selectedCountry}${cleanNumber.replace(/^0+/, '')}`;
     try {
       const user = await userService.loginWithPhone(fullPhone, phonePassword);
       onSuccess(user);
-    } catch {
+    } catch (err) {
       setErrorMessage(t('loginFailedPhone'));
     } finally {
       setLoading(false);
@@ -138,54 +148,115 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-card">
+    <div
+      className="modal-overlay"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.78)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        padding: '16px',
+      }}
+    >
+      <div
+        className="modal-card"
+        style={{
+          background: 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)',
+          border: '1px solid rgba(245, 158, 11, 0.35)',
+          borderRadius: '18px',
+          padding: '28px 24px',
+          maxWidth: '440px',
+          width: '100%',
+          boxShadow: '0 20px 45px rgba(0, 0, 0, 0.7), 0 0 30px rgba(245, 158, 11, 0.25)',
+          color: '#f8fafc',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '18px',
+          position: 'relative',
+        }}
+      >
         {/* 상단 헤더: 타이틀 및 언어 토글 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ fontSize: '26px', fontWeight: '700', color: '#f59e0b', letterSpacing: '0.5px' }}>
-              {t('gameTitle')}
+            <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#f59e0b', letterSpacing: '0.5px', margin: 0 }}>
+              🎯 {t('gameTitle')}
             </h1>
-            <p style={{ fontSize: '13px', color: '#94a3b8', marginTop: '2px' }}>
-              {t('introHint')}
+            <p style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px', margin: 0 }}>
+              {t('loginSubtitle')}
             </p>
           </div>
-          <button
-            onClick={handleToggleLang}
-            style={{
-              background: 'rgba(255, 255, 255, 0.1)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              color: '#f8fafc',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: '600',
-            }}
-          >
-            {i18n.language.toUpperCase()}
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* 언어 토글 버튼 (KO -> EN -> JA -> KO 순서) */}
+            <button
+              onClick={handleToggleLang}
+              style={{
+                background: 'rgba(245, 158, 11, 0.15)',
+                border: '1px solid #f59e0b',
+                color: '#f59e0b',
+                padding: '5px 10px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+              title="언어 전환 (KO -> EN -> JA)"
+            >
+              🌐 {getCurrentLocaleLabel(i18n.language)}
+            </button>
+
+            {onCancel && (
+              <button
+                onClick={onCancel}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: 'none',
+                  color: '#94a3b8',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
+        {/* 오류 메시지 배너 */}
         {errorMessage && (
           <div
             style={{
-              background: 'rgba(255, 45, 85, 0.15)',
-              border: '1px solid #ff2d55',
-              color: '#ff2d55',
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid #ef4444',
+              color: '#fca5a5',
               padding: '10px 14px',
               borderRadius: '8px',
               fontSize: '13px',
               textAlign: 'center',
+              fontWeight: '500',
             }}
           >
-            {errorMessage}
+            ⚠️ {errorMessage}
           </div>
         )}
 
-        {/* 탭: 기본(Main) */}
+        {/* 탭 1: 메인 로그인 선택지 */}
         {tab === 'main' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* 1. 게스트 빠른 시작 */}
             <button
               onClick={handleGuest}
               disabled={loading}
@@ -193,17 +264,23 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
                 background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                 color: '#ffffff',
                 padding: '14px',
-                borderRadius: '10px',
+                borderRadius: '12px',
                 border: 'none',
-                fontWeight: '700',
+                fontWeight: '800',
                 fontSize: '16px',
                 cursor: 'pointer',
                 boxShadow: '0 4px 14px rgba(245, 158, 11, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'transform 0.1s ease',
               }}
             >
-              {t('guest')}
+              ⚡ {t('guest')}
             </button>
 
+            {/* 2. Google 로그인 */}
             <button
               onClick={handleGoogle}
               disabled={loading}
@@ -211,15 +288,17 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
                 background: '#ffffff',
                 color: '#1e293b',
                 padding: '12px',
-                borderRadius: '10px',
+                borderRadius: '12px',
                 border: 'none',
-                fontWeight: '600',
+                fontWeight: '700',
                 fontSize: '14px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px',
+                gap: '10px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                transition: 'all 0.15s ease',
               }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24">
@@ -231,109 +310,173 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
               {t('loginWithGoogle')}
             </button>
 
+            {/* 구분선 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0' }}>
+              <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
+              <span style={{ fontSize: '11px', color: '#64748b' }}>OR</span>
+              <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
+            </div>
+
+            {/* 3. 이메일 로그인 */}
             <button
               onClick={() => { setTab('email'); setIsSignUp(false); setErrorMessage(''); }}
               style={{
-                background: 'rgba(255, 255, 255, 0.08)',
+                background: 'rgba(255, 255, 255, 0.07)',
                 color: '#f8fafc',
                 padding: '12px',
-                borderRadius: '10px',
+                borderRadius: '12px',
                 border: '1px solid rgba(255, 255, 255, 0.15)',
                 fontWeight: '600',
                 fontSize: '14px',
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'background 0.15s ease',
               }}
             >
-              {t('loginWithEmail')}
+              ✉️ {t('loginWithEmail')}
             </button>
 
+            {/* 4. 전화번호 로그인 */}
             <button
               onClick={() => { setTab('phone'); setErrorMessage(''); }}
               style={{
-                background: 'transparent',
-                color: '#94a3b8',
-                padding: '8px',
-                border: 'none',
-                fontWeight: '500',
-                fontSize: '13px',
+                background: 'rgba(56, 189, 248, 0.08)',
+                color: '#38bdf8',
+                padding: '12px',
+                borderRadius: '12px',
+                border: '1px solid rgba(56, 189, 248, 0.25)',
+                fontWeight: '600',
+                fontSize: '14px',
                 cursor: 'pointer',
-                textDecoration: 'underline',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'background 0.15s ease',
               }}
             >
-              {t('loginWithPhone')}
+              📱 {t('loginWithPhone')}
             </button>
           </div>
         )}
 
-        {/* 탭: 이메일 로그인 / 회원가입 */}
+        {/* 탭 2: 이메일 로그인 / 회원가입 */}
         {tab === 'email' && (
-          <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <form onSubmit={handleEmailSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* 세그먼트 탭: 로그인 / 회원가입 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', background: 'rgba(0, 0, 0, 0.3)', padding: '4px', borderRadius: '10px' }}>
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(false); setErrorMessage(''); }}
+                style={{
+                  padding: '8px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: !isSignUp ? 'rgba(245, 158, 11, 0.3)' : 'transparent',
+                  color: !isSignUp ? '#f59e0b' : '#94a3b8',
+                  fontWeight: '700',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                {t('loginWithEmail')}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(true); setErrorMessage(''); }}
+                style={{
+                  padding: '8px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: isSignUp ? 'rgba(245, 158, 11, 0.3)' : 'transparent',
+                  color: isSignUp ? '#f59e0b' : '#94a3b8',
+                  fontWeight: '700',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                {t('signupWithEmail')}
+              </button>
+            </div>
+
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginBottom: '5px' }}>
                 {t('email')}
               </label>
               <input
                 type="email"
+                required
                 placeholder={t('emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  padding: '11px 12px',
                   borderRadius: '8px',
-                  background: 'rgba(0, 0, 0, 0.3)',
+                  background: 'rgba(0, 0, 0, 0.35)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   color: '#fff',
                   fontSize: '14px',
+                  outline: 'none',
                 }}
               />
             </div>
 
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <label style={{ fontSize: '12px', color: '#94a3b8' }}>{t('password')}</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                <label style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  {t('password')} ({t('passwordHint')})
+                </label>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '11px', cursor: 'pointer' }}
+                  style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '12px', cursor: 'pointer' }}
                 >
-                  {showPassword ? t('hidePassword') : t('showPassword')}
+                  {showPassword ? `🙈 ${t('hidePassword')}` : `👁️ ${t('showPassword')}`}
                 </button>
               </div>
               <input
                 type={showPassword ? 'text' : 'password'}
+                required
                 placeholder={t('passwordHint')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  padding: '11px 12px',
                   borderRadius: '8px',
-                  background: 'rgba(0, 0, 0, 0.3)',
+                  background: 'rgba(0, 0, 0, 0.35)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   color: '#fff',
                   fontSize: '14px',
+                  outline: 'none',
                 }}
               />
             </div>
 
             {isSignUp && (
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginBottom: '5px' }}>
                   {t('passwordConfirm')}
                 </label>
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder={t('passwordConfirm')}
                   value={passwordConfirm}
                   onChange={(e) => setPasswordConfirm(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
+                    padding: '11px 12px',
                     borderRadius: '8px',
-                    background: 'rgba(0, 0, 0, 0.3)',
+                    background: 'rgba(0, 0, 0, 0.35)',
                     border: '1px solid rgba(255, 255, 255, 0.2)',
                     color: '#fff',
                     fontSize: '14px',
+                    outline: 'none',
                   }}
                 />
               </div>
@@ -345,78 +488,102 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
               style={{
                 background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                 color: '#ffffff',
-                padding: '12px',
-                borderRadius: '8px',
+                padding: '13px',
+                borderRadius: '10px',
                 border: 'none',
                 fontWeight: '700',
                 fontSize: '15px',
                 cursor: 'pointer',
-                marginTop: '6px',
+                marginTop: '4px',
+                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)',
               }}
             >
-              {isSignUp ? t('signupWithEmail') : t('loginWithEmail')}
+              {loading ? '...' : isSignUp ? t('signupWithEmail') : t('loginWithEmail')}
             </button>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-              <button
-                type="button"
-                onClick={() => { setIsSignUp(!isSignUp); setErrorMessage(''); }}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '12px', cursor: 'pointer' }}
-              >
-                {isSignUp ? t('switchLogin') : t('switchSignup')}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setTab('main'); setErrorMessage(''); }}
-                style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '12px', cursor: 'pointer' }}
-              >
-                {t('cancel')}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => { setTab('main'); setErrorMessage(''); }}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', cursor: 'pointer', marginTop: '2px' }}
+            >
+              ← {t('backToMain')}
+            </button>
           </form>
         )}
 
-        {/* 탭: 전화번호 로그인 */}
+        {/* 탭 3: 전화번호(휴대번호) 로그인 */}
         {tab === 'phone' && (
-          <form onSubmit={handlePhoneSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>
-                {t('phone')} ({phoneConfig.country})
-              </label>
-              <input
-                type="tel"
-                placeholder={phoneConfig.placeholder}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  background: 'rgba(0, 0, 0, 0.3)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: '#fff',
-                  fontSize: '14px',
-                }}
-              />
+          <form onSubmit={handlePhoneSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ fontSize: '12px', color: '#94a3b8', background: 'rgba(56, 189, 248, 0.1)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
+              📱 {t('phoneAuthDesc')}
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>
-                {t('password')}
+              <label style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginBottom: '5px' }}>
+                {t('phone')}
+              </label>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {/* 국가번호 선택 */}
+                <select
+                  value={selectedCountry}
+                  onChange={(e) => setSelectedCountry(e.target.value)}
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.4)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#f59e0b',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    outline: 'none',
+                  }}
+                >
+                  {COUNTRY_OPTIONS.map((c) => (
+                    <option key={c.code} value={c.code} style={{ background: '#1e293b', color: '#fff' }}>
+                      {c.flag} {c.code}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="tel"
+                  required
+                  placeholder="010-1234-5678"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '11px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 0, 0, 0.35)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: '#fff',
+                    fontSize: '14px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginBottom: '5px' }}>
+                {t('password')} ({t('passwordHint')})
               </label>
               <input
                 type="password"
+                required
                 placeholder={t('passwordHint')}
                 value={phonePassword}
                 onChange={(e) => setPhonePassword(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  padding: '11px 12px',
                   borderRadius: '8px',
-                  background: 'rgba(0, 0, 0, 0.3)',
+                  background: 'rgba(0, 0, 0, 0.35)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   color: '#fff',
                   fontSize: '14px',
+                  outline: 'none',
                 }}
               />
             </div>
@@ -425,26 +592,27 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess }) => {
               type="submit"
               disabled={loading}
               style={{
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
                 color: '#ffffff',
-                padding: '12px',
-                borderRadius: '8px',
+                padding: '13px',
+                borderRadius: '10px',
                 border: 'none',
                 fontWeight: '700',
                 fontSize: '15px',
                 cursor: 'pointer',
-                marginTop: '6px',
+                marginTop: '4px',
+                boxShadow: '0 4px 14px rgba(56, 189, 248, 0.35)',
               }}
             >
-              {t('loginWithPhone')}
+              {loading ? '...' : t('loginWithPhone')}
             </button>
 
             <button
               type="button"
               onClick={() => { setTab('main'); setErrorMessage(''); }}
-              style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '12px', cursor: 'pointer', textAlign: 'center' }}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', cursor: 'pointer', marginTop: '2px' }}
             >
-              {t('cancel')}
+              ← {t('backToMain')}
             </button>
           </form>
         )}

@@ -8,6 +8,7 @@ dist
 dist-ssr
 
 # Local env files (optional overrides)
+.env
 .env.local
 .env.*.local
 

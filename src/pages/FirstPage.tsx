@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { toggleLocale, getCurrentLocaleLabel } from '../shared/i18n';
 import { userService } from '../entities/user/userService';
 import { UserProfile } from '../shared/firebase/firebase';
+import { SoundToggleButton } from '../shared/components/SoundToggleButton';
 
 interface FirstPageProps {
   onSuccess: (user: UserProfile) => void;
@@ -179,15 +180,18 @@ export const FirstPage: React.FC<FirstPageProps> = ({ onSuccess, onCancel }) => 
           position: 'relative',
         }}
       >
-        {/* 상단 헤더: 타이틀 및 언어 토글 */}
+        {/* 상단 헤더: 타이틀, 사운드 토글 및 언어 토글 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#f59e0b', letterSpacing: '0.5px', margin: 0 }}>
-              🎯 {t('gameTitle')}
-            </h1>
-            <p style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px', margin: 0 }}>
-              {t('loginSubtitle')}
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <SoundToggleButton />
+            <div>
+              <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#f59e0b', letterSpacing: '0.5px', margin: 0 }}>
+                🎯 {t('gameTitle')}
+              </h1>
+              <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px', margin: 0 }}>
+                {t('loginSubtitle')}
+              </p>
+            </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

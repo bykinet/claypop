@@ -107,6 +107,7 @@ const LOCAL_USER_KEY = 'claypop.local_user';
 const LOCAL_SESSIONS_KEY = 'claypop.local_sessions';
 
 export function getLocalUser(): UserProfile | null {
+  if (typeof localStorage === 'undefined') return null;
   const data = localStorage.getItem(LOCAL_USER_KEY);
   if (!data) return null;
   try {
@@ -117,14 +118,25 @@ export function getLocalUser(): UserProfile | null {
 }
 
 export function saveLocalUser(user: UserProfile): void {
-  localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(user));
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(user));
+  } catch {
+    // 무시
+  }
 }
 
 export function removeLocalUser(): void {
-  localStorage.removeItem(LOCAL_USER_KEY);
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.removeItem(LOCAL_USER_KEY);
+  } catch {
+    // 무시
+  }
 }
 
 export function getLocalSessions(): SessionRecord[] {
+  if (typeof localStorage === 'undefined') return [];
   const data = localStorage.getItem(LOCAL_SESSIONS_KEY);
   if (!data) return [];
   try {
@@ -135,9 +147,14 @@ export function getLocalSessions(): SessionRecord[] {
 }
 
 export function saveLocalSession(session: SessionRecord): void {
+  if (typeof localStorage === 'undefined') return;
   const list = getLocalSessions();
   list.unshift(session);
-  localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(list.slice(0, 50)));
+  try {
+    localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(list.slice(0, 50)));
+  } catch {
+    // 무시
+  }
 }
 
 export {

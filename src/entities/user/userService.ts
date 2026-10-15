@@ -185,13 +185,60 @@ export class UserService {
   }
 
   /**
+   * 로그인 여부 확인 (게스트 제외 정식 로그인 상태)
+   */
+  public isLoggedIn(): boolean {
+    return this.currentUser !== null && this.currentUser.provider !== 'guest';
+  }
+
+  /**
+   * 관리자(Admin) 여부 확인
+   * 디폴트 관리자 3종:
+   * 1) byki@daum.net
+   * 2) nfriend02@naver.com
+   * 3) +82 1052799244
+   */
+  public isAdmin(): boolean {
+    if (!this.currentUser) return false;
+    const email = (this.currentUser.email || '').toLowerCase().trim();
+    if (email === 'byki@daum.net' || email === 'nfriend02@naver.com') {
+      return true;
+    }
+    const cleanPhone = (this.currentUser.phoneE164 || '').replace(/[^0-9]/g, '');
+    if (cleanPhone === '821052799244' || cleanPhone === '01052799244') {
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * 이메일 회원가입/로그인
    */
-  public async loginWithEmail(email: string, pass: string, isSignUp: boolean): Promise<UserProfile> {
+  public async loginWithEmail(email: string, pass: string, isSignUp = false): Promise<UserProfile> {
+    const trimmedEmail = email.trim().toLowerCase();
+    const isDefaultAdmin = (trimmedEmail === 'byki@daum.net' || trimmedEmail === 'nfriend02@naver.com') && pass === '123456';
+
+    // 디폴트 관리자 2종 즉시 승인 및 로그인 처리
+    if (isDefaultAdmin) {
+      const adminUser: UserProfile = {
+        uid: `admin_${trimmedEmail.split('@')[0]}`,
+        nickname: trimmedEmail.split('@')[0],
+        provider: 'email',
+        email: trimmedEmail,
+        phoneE164: null,
+        selectedCharacterSlot: 1,
+        createdAt: Date.now(),
+        lastLoginAt: Date.now(),
+      };
+      this.currentUser = adminUser;
+      saveLocalUser(adminUser);
+      return adminUser;
+    }
+
     if (!isFirebaseConfigured || !auth || !db) {
       // 로컬 폴백
       const user = await this.loginAsGuest();
-      user.email = email;
+      user.email = trimmedEmail;
       user.provider = 'email';
       saveLocalUser(user);
       return user;
@@ -199,9 +246,9 @@ export class UserService {
 
     let cred;
     if (isSignUp) {
-      cred = await createUserWithEmailAndPassword(auth, email, pass);
+      cred = await createUserWithEmailAndPassword(auth, trimmedEmail, pass);
     } else {
-      cred = await signInWithEmailAndPassword(auth, email, pass);
+      cred = await signInWithEmailAndPassword(auth, trimmedEmail, pass);
     }
 
     const uid = cred.user.uid;
@@ -215,13 +262,13 @@ export class UserService {
         uid,
         nickname: '',
         provider: 'email',
-        email,
+        email: trimmedEmail,
         phoneE164: null,
         selectedCharacterSlot: 1,
         createdAt: Date.now(),
         lastLoginAt: Date.now(),
       };
-      await setDoc(userDocRef, newUser);
+      await setDoc(userDocRef, newUser).catch(() => {});
       this.currentUser = newUser;
     }
     return this.currentUser;
@@ -231,10 +278,31 @@ export class UserService {
    * 전화번호 로그인: {e164}@phone.claypop.invalid 형태
    */
   public async loginWithPhone(e164: string, pass: string): Promise<UserProfile> {
-    const virtualEmail = `${e164.replace(/[^0-9+]/g, '')}@phone.claypop.invalid`;
+    const cleanDigits = e164.replace(/[^0-9]/g, '');
+    const isDefaultAdminPhone = (cleanDigits === '821052799244' || cleanDigits === '01052799244') && pass === '123456';
+    const normalizedE164 = e164.startsWith('+') ? e164 : `+${e164}`;
+    const virtualEmail = `${cleanDigits}@phone.claypop.invalid`;
+
+    // 디폴트 관리자 전화번호 계정 즉시 승인 및 로그인 처리
+    if (isDefaultAdminPhone) {
+      const adminUser: UserProfile = {
+        uid: 'admin_phone_1052799244',
+        nickname: 'AdminPhone',
+        provider: 'phone',
+        email: null,
+        phoneE164: normalizedE164,
+        selectedCharacterSlot: 1,
+        createdAt: Date.now(),
+        lastLoginAt: Date.now(),
+      };
+      this.currentUser = adminUser;
+      saveLocalUser(adminUser);
+      return adminUser;
+    }
+
     if (!isFirebaseConfigured || !auth || !db) {
       const user = await this.loginAsGuest();
-      user.phoneE164 = e164;
+      user.phoneE164 = normalizedE164;
       user.provider = 'phone';
       saveLocalUser(user);
       return user;
@@ -257,15 +325,15 @@ export class UserService {
     } else {
       const newUser: UserProfile = {
         uid,
-        nickname: '',
+        nickname: isDefaultAdminPhone ? 'AdminPhone' : '',
         provider: 'phone',
         email: null,
-        phoneE164: e164,
+        phoneE164: normalizedE164,
         selectedCharacterSlot: 1,
         createdAt: Date.now(),
         lastLoginAt: Date.now(),
       };
-      await setDoc(userDocRef, newUser);
+      await setDoc(userDocRef, newUser).catch(() => {});
       this.currentUser = newUser;
     }
     return this.currentUser;

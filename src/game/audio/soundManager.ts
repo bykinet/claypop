@@ -4,14 +4,25 @@
 class SoundManager {
   private ctx: AudioContext | null = null;
   private bgmGain: GainNode | null = null;
-  private isMuted: boolean = false;
+  private isMuted: boolean = true;
   private bgmPlaying: boolean = false;
   private bgmTimer: number | null = null;
+  private listeners: ((muted: boolean) => void)[] = [];
 
   constructor() {
-    // 음소거 상태 로드
+    // 음소거 상태 로드 (디폴트는 꺼진 상태 = true)
     const stored = localStorage.getItem('claypop.muted');
-    this.isMuted = stored === 'true';
+    this.isMuted = stored === null ? true : stored === 'true';
+  }
+
+  /**
+   * 사운드 상태 변경 리스너 등록
+   */
+  public subscribe(fn: (muted: boolean) => void): () => void {
+    this.listeners.push(fn);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== fn);
+    };
   }
 
   /**
@@ -35,9 +46,13 @@ class SoundManager {
   public setMuted(muted: boolean): void {
     this.isMuted = muted;
     localStorage.setItem('claypop.muted', String(muted));
+    if (!muted) {
+      this.initContext();
+    }
     if (this.bgmGain && this.ctx) {
       this.bgmGain.gain.setValueAtTime(muted ? 0 : 0.08, this.ctx.currentTime);
     }
+    this.listeners.forEach((fn) => fn(this.isMuted));
   }
 
   public toggleMute(): boolean {

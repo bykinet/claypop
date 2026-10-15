@@ -7,6 +7,7 @@ import { calculateGrade, getTheoreticalMax } from '../game/sim/score';
 import { userService } from '../entities/user/userService';
 import { SessionRecord } from '../shared/firebase/firebase';
 import { soundManager } from '../game/audio/soundManager';
+import { SoundToggleButton } from '../shared/components/SoundToggleButton';
 
 interface ResultPageProps {
   finalSim: SimState;
@@ -14,6 +15,9 @@ interface ResultPageProps {
   onRetry: () => void;
   onGoHome: () => void;
   onGoMyPage: () => void;
+  onLogout: () => void;
+  onOpenLogin: () => void;
+  onOpenAdmin: () => void;
 }
 
 export const ResultPage: React.FC<ResultPageProps> = ({
@@ -22,10 +26,15 @@ export const ResultPage: React.FC<ResultPageProps> = ({
   onRetry,
   onGoHome,
   onGoMyPage,
+  onLogout,
+  onOpenLogin,
+  onOpenAdmin,
 }) => {
   const { t } = useTranslation();
   const [rankings, setRankings] = useState<SessionRecord[]>([]);
   const [loadingRank, setLoadingRank] = useState(true);
+  const isLoggedIn = userService.isLoggedIn();
+  const isAdmin = userService.isAdmin();
 
   const theoreticalMax = getTheoreticalMax(finalSim.duration);
   const grade = calculateGrade(finalSim.score, theoreticalMax);
@@ -93,6 +102,71 @@ export const ResultPage: React.FC<ResultPageProps> = ({
       }}
     >
       <div className="modal-card" style={{ maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }}>
+        {/* 상단 네비게이션: 사운드 On/Off 아이콘(좌측) 및 Admin/로그아웃/로그인 버튼(우측) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <SoundToggleButton />
+
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {/* 관리자일 때 로그아웃 바로 왼쪽에 표시되는 Admin 버튼 */}
+            {isAdmin && (
+              <button
+                onClick={onOpenAdmin}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(217, 119, 6, 0.3) 100%)',
+                  border: '1px solid #f59e0b',
+                  color: '#f59e0b',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  fontWeight: '800',
+                  boxShadow: '0 0 10px rgba(245, 158, 11, 0.35)',
+                }}
+              >
+                ⚙️ Admin
+              </button>
+            )}
+
+            {/* 로그인 / 로그아웃 토글 버튼 (상단 가장 우측) */}
+            {isLoggedIn ? (
+              <button
+                onClick={onLogout}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.18)',
+                  border: '1px solid #ef4444',
+                  color: '#fca5a5',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  fontWeight: '700',
+                }}
+                title="로그아웃하고 인트로 화면으로 이동"
+              >
+                🚪 {t('logout')}
+              </button>
+            ) : (
+              <button
+                onClick={onOpenLogin}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  border: 'none',
+                  color: '#ffffff',
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  fontWeight: '800',
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.4)',
+                }}
+                title="로그인 화면 열기"
+              >
+                🔑 {t('loginToSave')}
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* 결과 타이틀 및 등급 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>

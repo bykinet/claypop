@@ -9,6 +9,7 @@ import { IntroPage } from '../pages/IntroPage';
 import { PlayPage } from '../pages/PlayPage';
 import { ResultPage } from '../pages/ResultPage';
 import { MyPage } from '../pages/MyPage';
+import { AdminPage } from '../pages/AdminPage';
 import { userService } from '../entities/user/userService';
 import { SimState } from '../game/sim/types';
 import { UserProfile } from '../shared/firebase/firebase';
@@ -76,11 +77,12 @@ export const App: React.FC = () => {
     setScreen('result');
   };
 
-  // 로그아웃 처리
+  // 로그아웃 처리: 인트로 화면으로 복귀하고 게스트 상태로 전환
   const handleLogout = async () => {
     await userService.logout();
     await userService.loginAsGuest().catch(() => {});
-    setScreen('home');
+    setInitialIntroDone(false);
+    setScreen('intro');
   };
 
   return (
@@ -112,6 +114,7 @@ export const App: React.FC = () => {
           onGoMyPage={() => setScreen('mypage')}
           onLogout={handleLogout}
           onOpenLogin={() => setScreen('first')}
+          onOpenAdmin={() => setScreen('admin')}
         />
       )}
 
@@ -132,6 +135,9 @@ export const App: React.FC = () => {
           onRetry={() => setScreen('play')}
           onGoHome={() => setScreen('home')}
           onGoMyPage={() => setScreen('mypage')}
+          onLogout={handleLogout}
+          onOpenLogin={() => setScreen('first')}
+          onOpenAdmin={() => setScreen('admin')}
         />
       )}
 
@@ -140,6 +146,14 @@ export const App: React.FC = () => {
         <MyPage
           onBack={() => setScreen('home')}
           onAccountDeleted={() => setScreen('home')}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {/* 8. 관리자(Admin) 전용 화면 */}
+      {screen === 'admin' && (
+        <AdminPage
+          onBack={() => setScreen('home')}
           onLogout={handleLogout}
         />
       )}

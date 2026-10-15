@@ -1,8 +1,9 @@
 // src/pages/IntroPage.tsx
-// 인트로 동영상 전용 플레이어 화면 (초기 원반 비행 애니메이션 완전 제거)
+// 인트로 동영상 플레이어 화면 (상단 좌측 사운드 버튼 연동 및 음악 재생 지원)
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { soundManager } from '../game/audio/soundManager';
+import { SoundToggleButton } from '../shared/components/SoundToggleButton';
 
 interface IntroPageProps {
   onComplete: () => void;
@@ -15,21 +16,48 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
 
   useEffect(() => {
     const videoEl = videoRef.current;
+    const isMuted = soundManager.getMuted();
+
     if (videoEl) {
+      videoEl.muted = isMuted;
       videoEl
         .play()
+        .then(() => {
+          if (!isMuted) {
+            soundManager.startBGM();
+          }
+        })
         .catch(() => {
-          // 브라우저 자동 재생 정책 차단 시 무음 처리 후 재시도
+          // 브라우저 자동 재생 정책 차단 시 무음 처리 후 재생
           videoEl.muted = true;
           videoEl.play().catch(() => {
             setVideoError(true);
           });
         });
     }
+
+    // 사운드 토글 리스너
+    const unsubscribe = soundManager.subscribe((muted) => {
+      if (videoRef.current) {
+        videoRef.current.muted = muted;
+        videoRef.current.volume = muted ? 0 : 1;
+      }
+      if (!muted) {
+        soundManager.startBGM();
+      } else {
+        soundManager.stopBGM();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const handleFinish = () => {
-    soundManager.startBGM();
+    if (!soundManager.getMuted()) {
+      soundManager.startBGM();
+    }
     onComplete();
   };
 
@@ -46,6 +74,11 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
         zIndex: 100,
       }}
     >
+      {/* 상단 가장 왼쪽 사운드 On/Off 아이콘 버튼 (디폴트: 꺼짐) */}
+      <div style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 120 }}>
+        <SoundToggleButton />
+      </div>
+
       {/* 우측 상단 SKIP 버튼 */}
       <button
         onClick={handleFinish}
@@ -97,7 +130,7 @@ export const IntroPage: React.FC<IntroPageProps> = ({ onComplete }) => {
           <source src={encodeURI('/brand/videos/claypop인트로 동영상.mp4')} type="video/mp4" />
         </video>
       ) : (
-        /* 동영상 로드 실패 시 깔끔한 시작 화면 (원반 연출 없음) */
+        /* 동영상 로드 실패 시 깔끔한 시작 화면 */
         <div style={{ textAlign: 'center', color: '#ffffff', padding: '24px' }}>
           <h1 style={{ fontSize: '42px', fontWeight: '900', marginBottom: '16px', color: '#38bdf8' }}>
             {t('gameTitle')}

@@ -312,16 +312,52 @@ export const TARGET_CATALOG: Record<TargetType, TargetDefinition> = {
   },
 };
 
+import { customAssetsService } from '../../entities/assets/customAssetsService';
+
 /**
  * 모든 기본 타겟 타입 목록
  */
 export const ALL_TARGET_TYPES: TargetType[] = ['clay', 'copter', 'boom', 'ufo', 'chick'];
 
 /**
- * 특정 타겟 정의 가져오기
+ * 특정 타겟 정의 가져오기 (커스텀 타겟 지원)
  */
-export function getTargetDefinition(type: TargetType): TargetDefinition {
-  return TARGET_CATALOG[type] ?? TARGET_CATALOG.clay;
+export function getTargetDefinition(type: TargetType | string): TargetDefinition {
+  if (TARGET_CATALOG[type as TargetType]) {
+    return TARGET_CATALOG[type as TargetType];
+  }
+  try {
+    const custom = customAssetsService.getTargets().find((ct) => ct.id === type);
+    if (custom) {
+      return {
+        id: custom.id,
+        type: 'clay',
+        name: { en: custom.name, ko: custom.name, ja: custom.name },
+        desc: { en: 'Custom Target', ko: '관리자 등록 커스텀 타겟', ja: 'カスタムターゲット' },
+        icon: custom.icon || '/brand/targets/clay.jpg',
+        baseScore: custom.baseScore || 100,
+        baseRadius: 4.5,
+        baseDuration: 2.5,
+        trajectory: (custom.trajectory as TrajectoryPattern) || 'parabola',
+        projectile: 'shotgun_pellet',
+        projectileColor: custom.projectileColor || '#f59e0b',
+        particleColor: 0xf59e0b,
+        soundType: 'clay',
+        variants: [
+          {
+            version: 1,
+            name: { en: custom.name, ko: custom.name, ja: custom.name },
+            desc: { en: '', ko: '', ja: '' },
+            priceMileage: 0,
+            unlockedByDefault: true,
+          },
+        ],
+      };
+    }
+  } catch {
+    // 무시
+  }
+  return TARGET_CATALOG.clay;
 }
 
 /**
